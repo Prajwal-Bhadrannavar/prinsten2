@@ -63,6 +63,35 @@ export const rejectDoctor = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const deleteDoctor = async (req: AuthRequest, res: Response) => {
+  try {
+    const { doctorId } = req.params;
+
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+
+    // Get the userId to also delete the user account
+    const userId = doctor.userId;
+
+    // Delete the doctor record
+    await Doctor.deleteOne({ _id: doctorId });
+
+    // Also delete the associated user account
+    if (userId) {
+      await User.deleteOne({ _id: userId });
+    }
+
+    res.json({
+      message: 'Doctor deleted successfully',
+      doctorId: doctorId,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
 export const getAllDoctors = async (req: AuthRequest, res: Response) => {
   try {
     const doctors = await Doctor.find({})

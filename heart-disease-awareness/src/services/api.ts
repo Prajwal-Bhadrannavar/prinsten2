@@ -107,4 +107,8 @@ export const adminAPI = {
     const response = await api.post(`/admin/doctors/${doctorId}/reject`, { reason });
     return response.data;
   },
+  deleteDoctor: async (doctorId: string) => {
+    const response = await api.delete(`/admin/doctors/${doctorId}`);
+    return response.data;
+  },
 };

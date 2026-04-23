@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, TrendingUp, Calendar, Activity, LogOut, User } from 'lucide-react';
+import { Heart, TrendingUp, Calendar, Activity, LogOut, User, Phone } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { assessmentAPI, userAPI } from '../services/api';
 import {
@@ -157,7 +157,7 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${user?.isAdmin ? '6' : '5'} gap-6 mb-8`}>
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${user?.isAdmin ? '7' : '6'} gap-6 mb-8`}>
           <Link
             to="/assessment"
             className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow"
@@ -192,6 +192,15 @@ const DashboardPage: React.FC = () => {
             <Calendar className="h-8 w-8 text-red-500 mb-3" />
             <h3 className="text-lg font-semibold mb-1">Emergency Guide</h3>
             <p className="text-gray-600 text-sm">Emergency procedures</p>
+          </Link>
+          
+          <Link
+            to="/contact"
+            className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+          >
+            <Phone className="h-8 w-8 text-red-500 mb-3" />
+            <h3 className="text-lg font-semibold mb-1">Find Hospitals</h3>
+            <p className="text-gray-600 text-sm">Locate nearby heart hospitals</p>
           </Link>
           
           <Link

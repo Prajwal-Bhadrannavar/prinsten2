@@ -17,7 +17,7 @@ import DoctorDashboardPage from './pages/DoctorDashboardPage';
 import DoctorArticleEditorPage from './pages/DoctorArticleEditorPage';
 import AdminPage from './pages/AdminPage';
 import AdminRoute from './components/AdminRoute';
-import ContactPage from './pages/ContactPageGMaps';
+import ContactPage from './pages/ContactPageRealtime';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();

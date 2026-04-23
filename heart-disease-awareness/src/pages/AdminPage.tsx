@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ArrowLeft, CheckCircle, XCircle, Eye, Clock, User, Mail, Phone, MapPin, Award, FileText } from 'lucide-react';
+import { Heart, ArrowLeft, CheckCircle, XCircle, Eye, Clock, User, Mail, Phone, MapPin, Award, FileText, Trash } from 'lucide-react';
 import { adminAPI } from '../services/api';
 
 interface Doctor {
@@ -72,6 +72,23 @@ const AdminPage: React.FC = () => {
       fetchDoctors();
     } catch (err: any) {
       setError('Failed to reject doctor');
+    }
+  };
+
+  const handleDelete = async (doctorId: string) => {
+    const isConfirmed = window.confirm('Are you sure you want to delete this doctor? This action cannot be undone and will also delete the associated user account.');
+    
+    if (!isConfirmed) return;
+    
+    try {
+      await adminAPI.deleteDoctor(doctorId);
+      setSuccess('Doctor deleted successfully!');
+      fetchDoctors();
+      if (selectedDoctor && selectedDoctor._id === doctorId) {
+        setSelectedDoctor(null);
+      }
+    } catch (err: any) {
+      setError('Failed to delete doctor');
     }
   };
 
@@ -217,24 +234,34 @@ const AdminPage: React.FC = () => {
                       View Details
                     </button>
                     
-                    {!doctor.isVerified && (
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleApprove(doctor._id)}
-                          className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors flex items-center text-sm"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleReject(doctor._id)}
-                          className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors flex items-center text-sm"
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Reject
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex space-x-2">
+                      {!doctor.isVerified && (
+                        <>
+                          <button
+                            onClick={() => handleApprove(doctor._id)}
+                            className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors flex items-center text-sm"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleReject(doctor._id)}
+                            className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors flex items-center text-sm"
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Reject
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => handleDelete(doctor._id)}
+                        className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center text-sm"
+                        title="Delete Doctor"
+                      >
+                        <Trash className="h-4 w-4 mr-1" />
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
@@ -327,28 +354,40 @@ const AdminPage: React.FC = () => {
                     </div>
                   )}
 
-                  {!selectedDoctor.isVerified && (
-                    <div className="flex justify-end space-x-3 pt-4 border-t">
-                      <button
-                        onClick={() => {
-                          handleReject(selectedDoctor._id);
-                          setSelectedDoctor(null);
-                        }}
-                        className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors"
-                      >
-                        Reject
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleApprove(selectedDoctor._id);
-                          setSelectedDoctor(null);
-                        }}
-                        className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors"
-                      >
-                        Approve
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex justify-end space-x-3 pt-4 border-t">
+                    {!selectedDoctor.isVerified && (
+                      <>
+                        <button
+                          onClick={() => {
+                            handleReject(selectedDoctor._id);
+                            setSelectedDoctor(null);
+                          }}
+                          className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors"
+                        >
+                          Reject
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleApprove(selectedDoctor._id);
+                            setSelectedDoctor(null);
+                          }}
+                          className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors"
+                        >
+                          Approve
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => {
+                        handleDelete(selectedDoctor._id);
+                        setSelectedDoctor(null);
+                      }}
+                      className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center"
+                    >
+                      <Trash className="h-4 w-4 mr-2" />
+                      Delete Doctor
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
