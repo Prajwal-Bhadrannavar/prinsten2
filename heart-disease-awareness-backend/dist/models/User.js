@@ -57,6 +57,15 @@ const UserSchema = new mongoose_1.Schema({
         required: true,
         minlength: 6,
     },
+    role: {
+        type: String,
+        enum: ['user', 'admin', 'doctor'],
+        default: 'user',
+    },
+    isVerified: {
+        type: Boolean,
+        default: false,
+    },
     adminSecretKey: {
         type: String,
         default: null,
@@ -66,6 +75,10 @@ const UserSchema = new mongoose_1.Schema({
         default: false,
     },
     createdAt: {
+        type: Date,
+        default: Date.now,
+    },
+    updatedAt: {
         type: Date,
         default: Date.now,
     },

@@ -5,15 +5,17 @@ interface User {
   id: string;
   username: string;
   email: string;
+  role?: string;
   isAdmin?: boolean;
+  isVerified?: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string, adminSecretKey?: string) => Promise<void>;
-  register: (username: string, email: string, password: string, adminSecretKey?: string) => Promise<void>;
+  login: (token: string, user: User) => void;
   logout: () => void;
+  register: (username: string, email: string, password: string, adminSecretKey?: string) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -53,30 +55,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string, adminSecretKey?: string) => {
-    try {
-      const response = await authAPI.login(email, password, adminSecretKey);
-      setToken(response.token);
-      setUser(response.user);
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
-  };
-
-  const register = async (username: string, email: string, password: string, adminSecretKey?: string) => {
-    try {
-      const response = await authAPI.register(username, email, password, adminSecretKey);
-      setToken(response.token);
-      setUser(response.user);
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw error;
-    }
+  const login = (token: string, user: User) => {
+    // Normalize user data to handle both role and isAdmin fields
+    const normalizedUser: User = {
+      ...user,
+      role: user.role || (user.isAdmin ? 'admin' : 'user'),
+    };
+    
+    setToken(token);
+    setUser(normalizedUser);
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(normalizedUser));
   };
 
   const logout = () => {
@@ -86,12 +75,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('user');
   };
 
+  const register = async (username: string, email: string, password: string, adminSecretKey?: string) => {
+    try {
+      const response = await authAPI.register({
+        username,
+        email,
+        password,
+        confirmPassword: password
+      });
+      
+      if (response.success && response.token) {
+        const normalizedUser: User = {
+          ...response.user,
+          role: response.user.role || 'user',
+        };
+        
+        setToken(response.token);
+        setUser(normalizedUser);
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('user', JSON.stringify(normalizedUser));
+      } else {
+        throw new Error(response.message || 'Registration failed');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     token,
     login,
-    register,
     logout,
+    register,
     isLoading,
   };
 

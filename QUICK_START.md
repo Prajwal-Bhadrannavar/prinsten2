@@ -1,205 +1,97 @@
-# ⚡ Hospital Finder - Quick Start (2 Minutes)
+# Quick Start (Updated)
 
-## 🚀 Start in 3 Commands
+## Run Latest Changes
+
+Use two terminals and restart both apps so new code is loaded.
 
 ```bash
 # Terminal 1 - Backend
 cd "d:\MY PROJECTS\ai-agents\prinsten\heart-disease-awareness-backend"
-npm run dev
-
-# Terminal 2 - Frontend (new terminal)
-cd "d:\MY PROJECTS\ai-agents\prinsten\heart-disease-awareness"
+npm install
+npm run build
 npm start
-
-# Then open browser
-http://localhost:3000/contact
 ```
 
----
-
-## 🎯 What You Get
-
-### **Feature 1: GPS Search** 📍
-```
-Click "Use GPS" → Allow Permission → See nearby hospitals sorted by distance
+```bash
+# Terminal 2 - Frontend
+cd "d:\MY PROJECTS\ai-agents\prinsten\heart-disease-awareness"
+npm install
+npm start
 ```
 
-### **Feature 2: City Search** 🔍
-```
-Type "Delhi" → Click "Search" → See all Delhi hospitals sorted by distance
-```
+Open:
 
-### **Feature 3: Hospital Details** ℹ️
-```
-Click "Details" → View full info (address, phone, doctors, facilities)
-```
+- `http://localhost:3000`
+- `http://localhost:3000/assessment`
+- `http://localhost:3000/contact`
+- `http://localhost:3000/forgot-password`
 
-### **Feature 4: Quick Actions** 🔗
-```
-- Click Phone → Call hospital
-- Click Email → Email hospital  
-- Click "Directions" → Open Google Maps
-- Click Website → Visit hospital website
-```
+## If Changes Are Not Showing
 
----
+1. Stop old running servers (`Ctrl + C` in backend/frontend terminals).
+2. Start backend again from `heart-disease-awareness-backend`.
+3. Start frontend again from `heart-disease-awareness`.
+4. Hard refresh browser (`Ctrl + F5`).
 
-## 🏥 20+ Hospitals Included
+## Required Environment Variables
 
-**Top Cities:**
-- **Delhi:** AIIMS, Fortis Escorts, Max, Sir Ganga Ram, Apollo (5+)
-- **Mumbai:** Cleveland Clinic, Kokilaben, Asian Heart, Breach Candy (4+)
-- **Bangalore:** Manipal, Narayana Health (2+)
-- **Other:** Hyderabad, Pune, Chennai, Vellore, Gurgaon (5+)
+### Backend (`heart-disease-awareness-backend/.env`)
 
----
-
-## ✨ Key Features
-
-| Feature | Status |
-|---------|--------|
-| GPS Geolocation | ✅ Working |
-| City Search (19 cities) | ✅ Working |
-| Distance Calculation | ✅ Accurate |
-| Hospital Details | ✅ Complete |
-| Responsive Design | ✅ Mobile-ready |
-| Google Maps Integration | ✅ Linked |
-| Emergency Contact | ✅ Displayed |
-| Material-UI Design | ✅ Beautiful |
-
----
-
-## 📱 Try These City Names
-
-```
-Delhi, Mumbai, Bangalore, Hyderabad, Pune, 
-Chennai, Gurgaon, Noida, Kolkata, Vellore
+```env
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/heart-disease-awareness
+JWT_SECRET=your_super_secret_key
+FRONTEND_URL=http://localhost:3000
+ADMIN_EMAIL=admin@heartdisease.com
+ADMIN_PASSWORD=Admin@2024!Secure
+ADMIN_NAME=System Administrator
+# Optional for real email delivery (forgot password):
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
+SMTP_FROM=Heart Awareness <your_email@gmail.com>
 ```
 
----
+### Frontend (`heart-disease-awareness/.env`)
 
-## 🧪 Quick Test
-
-1. Go to http://localhost:3000/contact
-2. Try "Delhi" in search box
-3. Hit Search or Press Enter
-4. See 5+ Delhi hospitals
-5. See distances in km
-6. Click "Directions" to verify Google Maps opens
-
----
-
-## 📁 File Structure
-
-```
-src/
-├── data/
-│   └── hospitals-india.json (20+ hospitals)
-└── pages/
-    └── ContactPageFixed-New.tsx (Main feature)
+```env
+REACT_APP_API_URL=http://localhost:5000/api
+# Optional: if omitted, app now uses OpenStreetMap fallback in map tab
+REACT_APP_GOOGLE_MAPS_API_KEY=
 ```
 
----
+## Assessment Notes
 
-## 🔧 Made With
+- Assessment now supports the new multi-option model.
+- It is backward-compatible with old yes/no question format.
+- If assessment still fails, backend is likely still running an old process. Restart backend.
 
-- React 19 + TypeScript
-- Material-UI v5  
-- Geolocation API
-- Haversine Distance Formula
-- Google Maps API
+## Map Notes (No API Key Mode)
 
----
+- If `REACT_APP_GOOGLE_MAPS_API_KEY` is missing or invalid, the app now shows an OpenStreetMap fallback in Map View.
+- You can still click Directions to open external maps.
 
-## ❓ FAQ
+## Quick Health Checks
 
-**Q: Does it work without GPS permission?**
-A: Yes! Users can type city name instead. GPS is optional.
+Backend checks:
 
-**Q: Which cities are supported?**
-A: 19 major Indian cities. See list above.
-
-**Q: Can I add more hospitals?**
-A: Yes! Edit `hospitals-india.json` and add new entries.
-
-**Q: Is my location data stored?**
-A: No! Location is never stored or sent to server.
-
-**Q: Does it work offline?**
-A: No, but it works if Google Maps is blocked.
-
----
-
-## 🎨 What Users See
-
-```
-┌─────────────────────────────────────┐
-│  🏥 Find Heart Hospitals Near You   │
-│─────────────────────────────────────│
-│  [📍 Enter City] [Search] [Use GPS]  │
-│─────────────────────────────────────│
-│  ✅ 5 Hospitals Found                │
-│                                      │
-│  🏥 Hospital Name                    │
-│  ⭐ 4.8 | 📍 2.5 km | 🚨 Emergency   │
-│  📍 Address Details                  │
-│  📞 +91-XXX-XXXX                     │
-│  [Directions] [Details] [Email] [Web]│
-│                                      │
-│  ... more hospitals ...              │
-│                                      │
-│  🚨 Emergency: Call 112 or 108       │
-└─────────────────────────────────────┘
+```bash
+cd "d:\MY PROJECTS\ai-agents\prinsten"
+node test-all-routes.js
+node test-assessment.js
 ```
 
----
+Forgot/reset checks:
 
-## 🎯 Use Cases
-
-1. **Patient Finding Hospital** 📍
-   - GPS → Shows nearest hospital
-   - Clicks Directions → Gets to hospital
-
-2. **User Comparing Options** 🔍
-   - Searches city
-   - Views all hospitals
-   - Reviews details
-   - Calls hospital directly
-
-3. **Emergency Situation** 🚨
-   - Sees red emergency banner
-   - Gets emergency numbers
-   - Finds nearest hospital via GPS
-
----
-
-## ✅ Status
-
-| Component | Status |
-|-----------|--------|
-| Frontend Build | ✅ SUCCESS |
-| Backend Build | ✅ SUCCESS |
-| Hospital Data | ✅ 20+ hospitals |
-| Geolocation | ✅ Working |
-| Search | ✅ All 19 cities |
-| UI/UX | ✅ Material-UI |
-| Mobile Responsive | ✅ Yes |
-| Ready for Production | ✅ YES |
-
----
-
-## 🚀 You're Ready!
-
-```
-1. ✅ Backend running
-2. ✅ Frontend running  
-3. ✅ Feature implemented
-4. ✅ Hospital database ready
-5. ✅ All tests passing
-
-GO TO: http://localhost:3000/contact
+```bash
+node test-forgot.js
+node test-reset.js
 ```
 
----
+Frontend checks:
 
-**That's it! Enjoy your new Hospital Finder! 🎉**
+1. Visit `/assessment` and complete all questions.
+2. Visit `/contact` -> `Map View` should render Google Maps (if key works) or OpenStreetMap fallback.
+3. Visit `/forgot-password` and test reset flow.

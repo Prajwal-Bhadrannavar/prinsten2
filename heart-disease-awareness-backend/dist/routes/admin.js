@@ -9,4 +9,5 @@ router.get('/doctors/pending', auth_1.authenticate, adminController_1.getPending
 router.get('/doctors/all', auth_1.authenticate, adminController_1.getAllDoctors);
 router.post('/doctors/:doctorId/approve', auth_1.authenticate, adminController_1.approveDoctor);
 router.post('/doctors/:doctorId/reject', auth_1.authenticate, adminController_1.rejectDoctor);
+router.delete('/doctors/:doctorId', auth_1.authenticate, adminController_1.deleteDoctor);
 exports.default = router;

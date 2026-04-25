@@ -3,14 +3,24 @@ import { Link } from 'react-router-dom';
 import { Heart, ChevronRight, ChevronLeft, AlertTriangle } from 'lucide-react';
 import { assessmentAPI } from '../services/api';
 
+interface Option {
+  label: string;
+  value: string;
+  score: number;
+}
+
 interface Question {
   id: number;
   question: string;
-  weight: number;
+  category: 'clinical' | 'behavior';
+  source: string;
+  options: Option[];
 }
 
 interface AssessmentResult {
   riskScore: number;
+  awarenessScore: number;
+  clinicalRiskIndicator: number;
   riskLevel: 'low' | 'moderate' | 'high';
   recommendations: string[];
   disclaimer: string;
@@ -19,7 +29,7 @@ interface AssessmentResult {
 const AssessmentPage: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [responses, setResponses] = useState<{ questionId: number; answer: boolean }[]>([]);
+  const [responses, setResponses] = useState<{ questionId: number; value: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCalculating, setIsCalculating] = useState(false);
   const [result, setResult] = useState<AssessmentResult | null>(null);
@@ -29,7 +39,30 @@ const AssessmentPage: React.FC = () => {
     const loadQuestions = async () => {
       try {
         const data = await assessmentAPI.getQuestions();
-        setQuestions(data);
+        const normalizedQuestions: Question[] = (data || []).map((item: any) => {
+          if (Array.isArray(item.options) && item.options.length > 0) {
+            return {
+              id: item.id,
+              question: item.question,
+              category: item.category || 'behavior',
+              source: item.source || 'Internal assessment',
+              options: item.options
+            };
+          }
+
+          // Backward compatibility with old yes/no question format
+          return {
+            id: item.id,
+            question: item.question,
+            category: 'behavior',
+            source: 'Legacy assessment format',
+            options: [
+              { label: 'Yes', value: 'yes', score: typeof item.weight === 'number' ? item.weight : 1 },
+              { label: 'No', value: 'no', score: 0 }
+            ]
+          };
+        });
+        setQuestions(normalizedQuestions);
       } catch (err) {
         setError('Failed to load questions. Please try again.');
       } finally {
@@ -40,16 +73,16 @@ const AssessmentPage: React.FC = () => {
     loadQuestions();
   }, []);
 
-  const handleAnswer = (answer: boolean) => {
+  const handleAnswer = (value: string) => {
     const newResponses = [...responses];
     const existingIndex = newResponses.findIndex(r => r.questionId === questions[currentQuestionIndex].id);
     
     if (existingIndex >= 0) {
-      newResponses[existingIndex].answer = answer;
+      newResponses[existingIndex].value = value;
     } else {
       newResponses.push({
         questionId: questions[currentQuestionIndex].id,
-        answer
+        value
       });
     }
     
@@ -74,16 +107,21 @@ const AssessmentPage: React.FC = () => {
     setIsCalculating(true);
     try {
       const result = await assessmentAPI.calculateRisk(responses);
-      
-      // Save the assessment results to database
-      await assessmentAPI.saveAssessment({
-        responses,
-        riskScore: result.riskScore,
-        riskLevel: result.riskLevel,
-        recommendations: result.recommendations
-      });
-      
       setResult(result);
+
+      // Save should not block showing result for non-authenticated users.
+      try {
+        await assessmentAPI.saveAssessment({
+          responses,
+          riskScore: result.riskScore,
+          riskLevel: result.riskLevel,
+          awarenessScore: result.awarenessScore ?? 0,
+          clinicalRiskIndicator: result.clinicalRiskIndicator ?? 0,
+          recommendations: result.recommendations
+        });
+      } catch (saveError) {
+        // Silent fallback: assessment results remain visible even if history save fails.
+      }
     } catch (err) {
       setError('Failed to calculate risk. Please try again.');
     } finally {
@@ -138,7 +176,17 @@ const AssessmentPage: React.FC = () => {
               </div>
               <div className="mt-4">
                 <div className="text-4xl font-bold text-gray-900">{result.riskScore}/100</div>
-                <div className="text-gray-600">Risk Score</div>
+                <div className="text-gray-600">Overall Risk Score</div>
+              </div>
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left max-w-lg mx-auto">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="text-sm text-gray-500">Behavior Awareness Score</div>
+                  <div className="text-xl font-semibold text-gray-800">{result.awarenessScore ?? 0}/100</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="text-sm text-gray-500">Clinical Risk Indicator</div>
+                  <div className="text-xl font-semibold text-gray-800">{result.clinicalRiskIndicator ?? 0}/100</div>
+                </div>
               </div>
             </div>
 
@@ -221,28 +269,24 @@ const AssessmentPage: React.FC = () => {
           {currentQuestion && (
             <div className="mb-8">
               <h3 className="text-xl font-semibold mb-6">{currentQuestion.question}</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Category: {currentQuestion.category === 'clinical' ? 'Clinical factors' : 'Lifestyle factors'} | Source: {currentQuestion.source}
+              </p>
               
               <div className="space-y-3">
-                <button
-                  onClick={() => handleAnswer(true)}
-                  className={`w-full p-4 rounded-lg border-2 transition-colors ${
-                    currentResponse?.answer === true
-                      ? 'border-red-500 bg-red-50 text-red-700'
-                      : 'border-gray-300 hover:border-gray-400'
-                  }`}
-                >
-                  Yes
-                </button>
-                <button
-                  onClick={() => handleAnswer(false)}
-                  className={`w-full p-4 rounded-lg border-2 transition-colors ${
-                    currentResponse?.answer === false
-                      ? 'border-red-500 bg-red-50 text-red-700'
-                      : 'border-gray-300 hover:border-gray-400'
-                  }`}
-                >
-                  No
-                </button>
+                {currentQuestion.options.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleAnswer(option.value)}
+                    className={`w-full p-4 rounded-lg border-2 transition-colors text-left ${
+                      currentResponse?.value === option.value
+                        ? 'border-red-500 bg-red-50 text-red-700'
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
             </div>
           )}

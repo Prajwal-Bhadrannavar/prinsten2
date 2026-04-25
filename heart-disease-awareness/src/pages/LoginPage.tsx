@@ -1,127 +1,501 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Heart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Container,
+  Paper,
+  TextField,
+  Button,
+  Typography,
+  Alert,
+  Tab,
+  Tabs,
+  InputAdornment,
+  IconButton,
+  Divider,
+} from '@mui/material';
+import {
+  Email,
+  Lock,
+  Visibility,
+  VisibilityOff,
+  AdminPanelSettings,
+  Person,
+} from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { authAPI } from '../services/api';
 
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [adminSecretKey, setAdminSecretKey] = useState('');
+  const [tabValue, setTabValue] = useState(0);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    username: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
     setError('');
-    setIsLoading(true);
+    setSuccess('');
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleUserLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
     try {
-      await login(email, password, adminSecretKey || undefined);
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      const response = await authAPI.login({
+        email: formData.email,
+        password: formData.password
+      });
+
+      if (response.success) {
+        login(response.token, response.user);
+        navigate('/dashboard');
+      } else {
+        setError(response.message || 'Login failed');
+      }
+    } catch (err) {
+      setError('Login failed. Please try again.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+    }
+  };
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await authAPI.adminLogin({
+        email: formData.email,
+        password: formData.password
+      });
+
+      if (response.success) {
+        login(response.token, response.user);
+        navigate('/admin');
+      } else {
+        setError(response.message || 'Admin login failed');
+      }
+    } catch (err) {
+      setError('Admin login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await authAPI.register({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword
+      });
+
+      if (response.success) {
+        setSuccess('Registration successful! Please login.');
+        setTabValue(0); // Switch to login tab
+      } else {
+        setError(response.message || 'Registration failed');
+      }
+    } catch (err) {
+      setError('Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await authAPI.forgotPassword({ email: formData.email });
+      
+      if (response.success) {
+        setSuccess(response.message || 'Password reset initiated.');
+      } else {
+        setError(response.message || 'Failed to send reset link');
+      }
+    } catch (err) {
+      setError('Failed to send reset link. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <Heart className="h-12 w-12 text-red-500" />
-        </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Sign in to your account
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Or{' '}
-          <Link to="/register" className="font-medium text-red-500 hover:text-red-600">
-            create a new account
-          </Link>
-        </p>
-      </div>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #fce4ec 0%, #f3e5f5 50%, #e8f5e8 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(10px)',
+          zIndex: 1,
+        }
+      }}
+    >
+      <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 2 }}>
+        <Paper
+          elevation={10}
+          sx={{
+            p: 4,
+            width: '100%',
+            borderRadius: 3,
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
+          }}
+        >
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
+            <Typography variant="h4" color="primary" gutterBottom>
+              ❤️ Heart Disease Awareness
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Secure Authentication System
+            </Typography>
+          </Box>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
-                {error}
-              </div>
-            )}
+          <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
+            variant="fullWidth"
+            sx={{ mb: 3 }}
+          >
+            <Tab label="User Login" icon={<Person />} />
+            <Tab label="Admin Login" icon={<AdminPanelSettings />} />
+            <Tab label="Register" icon={<Email />} />
+          </Tabs>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <div className="mt-1">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500"
-                />
-              </div>
-            </div>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500"
-                />
-              </div>
-            </div>
+          {success && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {success}
+            </Alert>
+          )}
 
-            <div>
-              <label htmlFor="adminSecretKey" className="block text-sm font-medium text-gray-700">
-                Admin Secret Key (Optional)
-              </label>
-              <div className="mt-1">
-                <input
-                  id="adminSecretKey"
-                  name="adminSecretKey"
-                  type="password"
-                  placeholder="Enter admin key for admin access"
-                  value={adminSecretKey}
-                  onChange={(e) => setAdminSecretKey(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500"
-                />
-              </div>
-              <p className="mt-1 text-xs text-gray-500">
-                Leave blank if you're not an admin. Admins can verify doctors.
-              </p>
-            </div>
+          {tabValue === 0 && (
+            <Box component="form" onSubmit={handleUserLogin}>
+              <Typography variant="h6" gutterBottom>
+                User Login
+              </Typography>
+              
+              <TextField
+                fullWidth
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                margin="normal"
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Email color="primary" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
 
-            <div>
-              <button
+              <TextField
+                fullWidth
+                label="Password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={handleInputChange}
+                margin="normal"
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock color="primary" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <Button
                 type="submit"
-                disabled={isLoading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                fullWidth
+                variant="contained"
+                color="primary"
+                size="large"
+                sx={{ mt: 2, mb: 2 }}
+                disabled={loading}
               >
-                {isLoading ? 'Signing in...' : 'Sign in'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+                {loading ? 'Logging in...' : 'Login'}
+              </Button>
+
+              <Box sx={{ textAlign: 'center', mt: 2 }}>
+                <Button
+                  variant="text"
+                  color="primary"
+                  onClick={handleForgotPassword}
+                  disabled={loading}
+                >
+                  Forgot Password?
+                </Button>
+              </Box>
+            </Box>
+          )}
+
+          {tabValue === 1 && (
+            <Box component="form" onSubmit={handleAdminLogin}>
+              <Typography variant="h6" gutterBottom>
+                Admin Login
+              </Typography>
+              
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <strong>Admin Credentials:</strong><br />
+                Email: admin@heartdisease.com<br />
+                Password: Admin@2024!Secure
+              </Alert>
+
+              <TextField
+                fullWidth
+                label="Admin Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                margin="normal"
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <AdminPanelSettings color="primary" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                fullWidth
+                label="Admin Password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={handleInputChange}
+                margin="normal"
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock color="primary" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                color="secondary"
+                size="large"
+                sx={{ mt: 2, mb: 2 }}
+                disabled={loading}
+              >
+                {loading ? 'Authenticating...' : 'Admin Login'}
+              </Button>
+            </Box>
+          )}
+
+          {tabValue === 2 && (
+            <Box component="form" onSubmit={handleRegister}>
+              <Typography variant="h6" gutterBottom>
+                Register New Account
+              </Typography>
+
+              <TextField
+                fullWidth
+                label="Username"
+                name="username"
+                type="text"
+                value={formData.username}
+                onChange={handleInputChange}
+                margin="normal"
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Person color="primary" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                fullWidth
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                margin="normal"
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Email color="primary" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                fullWidth
+                label="Password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={handleInputChange}
+                margin="normal"
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock color="primary" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                fullWidth
+                label="Confirm Password"
+                name="confirmPassword"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                margin="normal"
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock color="primary" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                color="primary"
+                size="large"
+                sx={{ mt: 2, mb: 2 }}
+                disabled={loading}
+              >
+                {loading ? 'Registering...' : 'Register'}
+              </Button>
+            </Box>
+          )}
+
+          <Divider sx={{ my: 2 }} />
+          
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Need help? Contact support@heartdisease.com
+            </Typography>
+          </Box>
+        </Paper>
+      </Container>
+    </Box>
   );
 };
 

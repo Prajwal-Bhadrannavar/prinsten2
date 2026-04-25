@@ -18,6 +18,8 @@ import DoctorArticleEditorPage from './pages/DoctorArticleEditorPage';
 import AdminPage from './pages/AdminPage';
 import AdminRoute from './components/AdminRoute';
 import ContactPage from './pages/ContactPageRealtime';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
@@ -99,6 +101,8 @@ function App() {
               } 
             />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route 
               path="/admin" 
               element={

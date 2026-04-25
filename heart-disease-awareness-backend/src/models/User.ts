@@ -5,9 +5,12 @@ export interface IUser extends Document {
   username: string;
   email: string;
   password: string;
-  adminSecretKey: string;
-  isAdmin: boolean;
+  role: string;
+  isVerified: boolean;
+  adminSecretKey?: string;
+  isAdmin?: boolean;
   createdAt: Date;
+  updatedAt?: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -30,6 +33,15 @@ const UserSchema: Schema = new Schema({
     required: true,
     minlength: 6,
   },
+  role: {
+    type: String,
+    enum: ['user', 'admin', 'doctor'],
+    default: 'user',
+  },
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
   adminSecretKey: {
     type: String,
     default: null,
@@ -39,6 +51,10 @@ const UserSchema: Schema = new Schema({
     default: false,
   },
   createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
     type: Date,
     default: Date.now,
   },

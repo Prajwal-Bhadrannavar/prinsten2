@@ -35,6 +35,7 @@ const LifestylePage: React.FC = () => {
   const [healthInsights, setHealthInsights] = useState<HealthInsights | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [insightsError, setInsightsError] = useState('');
 
   useEffect(() => {
     loadHistoricalData();
@@ -54,6 +55,7 @@ const LifestylePage: React.FC = () => {
       setHistoricalData(data);
     } catch (error) {
       console.error('Failed to load historical data:', error);
+      setMessage('Unable to load lifestyle history. Please login again and retry.');
     }
   };
 
@@ -61,8 +63,10 @@ const LifestylePage: React.FC = () => {
     try {
       const insights = await userAPI.getHealthInsights();
       setHealthInsights(insights);
+      setInsightsError('');
     } catch (error) {
       console.error('Failed to load health insights:', error);
+      setInsightsError('Health insights are unavailable right now. Save at least one lifestyle entry and refresh.');
     }
   };
 
@@ -185,6 +189,11 @@ const LifestylePage: React.FC = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Health Insights */}
+        {insightsError && (
+          <div className="mb-4 rounded-md bg-yellow-50 p-3 text-yellow-700">
+            {insightsError}
+          </div>
+        )}
         {healthInsights && healthInsights.averages && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">30-Day Health Insights</h2>

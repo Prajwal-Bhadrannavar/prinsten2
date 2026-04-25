@@ -15,14 +15,68 @@ api.interceptors.request.use((config) => {
 });
 
 export const authAPI = {
-  login: async (email: string, password: string, adminSecretKey?: string) => {
-    const response = await api.post('/auth/login', { email, password, adminSecretKey });
-    return response.data;
+  login: async (credentials: { email: string; password: string }) => {
+    try {
+      const response = await api.post('/auth/login', credentials);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
   },
-  register: async (username: string, email: string, password: string, adminSecretKey?: string) => {
-    const response = await api.post('/auth/register', { username, email, password, adminSecretKey });
-    return response.data;
+  
+  adminLogin: async (credentials: { email: string; password: string }) => {
+    try {
+      const response = await api.post('/auth/admin/login', credentials);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
   },
+  
+  register: async (userData: { username: string; email: string; password: string; confirmPassword: string }) => {
+    try {
+      const response = await api.post('/auth/register', userData);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+
+  forgotPassword: async (data: { email: string }) => {
+    try {
+      const response = await api.post('/auth/forgot-password', data);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+
+  resetPassword: async (data: { token: string; newPassword: string; confirmPassword: string }) => {
+    try {
+      const response = await api.post('/auth/reset-password', data);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+
+  getCurrentUser: async () => {
+    try {
+      const response = await api.get('/auth/me');
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+
+  changePassword: async (data: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
+    try {
+      const response = await api.post('/auth/change-password', data);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  }
 };
 
 export const assessmentAPI = {
@@ -30,7 +84,7 @@ export const assessmentAPI = {
     const response = await api.get('/assessment/questions');
     return response.data;
   },
-  calculateRisk: async (responses: { questionId: number; answer: boolean }[]) => {
+  calculateRisk: async (responses: { questionId: number; value: string }[]) => {
     const response = await api.post('/assessment/calculate', { responses });
     return response.data;
   },

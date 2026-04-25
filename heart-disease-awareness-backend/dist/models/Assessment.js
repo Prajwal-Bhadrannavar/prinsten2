@@ -46,7 +46,7 @@ const AssessmentSchema = new mongoose_1.Schema({
                 required: true,
             },
             answer: {
-                type: Boolean,
+                type: String,
                 required: true,
             },
         }],
@@ -64,6 +64,18 @@ const AssessmentSchema = new mongoose_1.Schema({
     recommendations: [{
             type: String,
         }],
+    awarenessScore: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: 0
+    },
+    clinicalRiskIndicator: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: 0
+    },
     createdAt: {
         type: Date,
         default: Date.now,

@@ -20,7 +20,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     );
   }
   
-  if (!user || !user.isAdmin) {
+  if (!user || user.role !== 'admin') {
     return <Navigate to="/dashboard" />;
   }
   

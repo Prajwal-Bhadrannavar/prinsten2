@@ -50,18 +50,24 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      try {
-        const [assessmentsData, insightsData] = await Promise.all([
-          assessmentAPI.getHistory(),
-          userAPI.getHealthInsights()
-        ]);
-        setAssessments(assessmentsData);
-        setHealthInsights(insightsData);
-      } catch (error) {
-        console.error('Failed to load dashboard data:', error);
-      } finally {
-        setIsLoading(false);
+      const [assessmentsResult, insightsResult] = await Promise.allSettled([
+        assessmentAPI.getHistory(),
+        userAPI.getHealthInsights()
+      ]);
+
+      if (assessmentsResult.status === 'fulfilled') {
+        setAssessments(assessmentsResult.value);
+      } else {
+        console.error('Failed to load assessment history:', assessmentsResult.reason);
       }
+
+      if (insightsResult.status === 'fulfilled') {
+        setHealthInsights(insightsResult.value);
+      } else {
+        console.error('Failed to load health insights:', insightsResult.reason);
+      }
+
+      setIsLoading(false);
     };
 
     loadData();
@@ -157,7 +163,7 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${user?.isAdmin ? '7' : '6'} gap-6 mb-8`}>
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${user?.role === 'admin' ? '7' : '6'} gap-6 mb-8`}>
           <Link
             to="/assessment"
             className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow"
@@ -212,7 +218,7 @@ const DashboardPage: React.FC = () => {
             <p className="text-gray-600 text-sm">Manage articles & content</p>
           </Link>
           
-          {user?.isAdmin && (
+          {user?.role === 'admin' && (
             <Link
               to="/admin"
               className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow"

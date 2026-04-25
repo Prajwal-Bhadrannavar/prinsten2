@@ -8,7 +8,6 @@ import {
   Card,
   CardContent,
   Grid,
-  IconButton,
   Chip,
   CircularProgress,
   Alert,
@@ -19,8 +18,6 @@ import {
   DialogContent,
   DialogActions,
   Divider,
-  Tab,
-  Tabs,
   List,
   ListItem,
   ListItemText,
@@ -34,16 +31,13 @@ import {
   Star,
   Navigation,
   Search,
-  Email,
   LocalHospital,
-  Map as MapIcon,
-  FilterList,
 } from '@mui/icons-material';
 import { 
   searchHospitalsByCity, 
   searchHospitalsByCoords, 
   getSupportedCities,
-  calculateDistance,
+  isHeartSpecialistHospital,
   Hospital,
   SearchResult 
 } from '../services/hospitalService';
@@ -86,7 +80,6 @@ const ContactPageRealtime: React.FC = () => {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [tabValue, setTabValue] = useState(0);
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
   const [selectedCity, setSelectedCity] = useState<string>('');
   const [supportedCities] = useState<string[]>(getSupportedCities());
@@ -95,106 +88,6 @@ const ContactPageRealtime: React.FC = () => {
     // Load default hospitals for Delhi on mount
     loadDefaultHospitals();
   }, []);
-
-  useEffect(() => {
-    // Initialize Google Maps when tab changes to map view
-    if (tabValue === 2 && hospitals.length > 0) {
-      initializeMap();
-    }
-  }, [tabValue, hospitals]);
-
-  const initializeMap = () => {
-    // Load Google Maps API
-    const mapScript = document.createElement('script');
-    mapScript.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBu5nZKbeK93tDIVjXwGdTuWg_60CTz7Ew&libraries=places,geometry`;
-    mapScript.async = true;
-    mapScript.defer = true;
-    mapScript.onload = () => {
-      if (window.google && window.google.maps) {
-        renderMap();
-      }
-    };
-    document.head.appendChild(mapScript);
-  };
-
-  const renderMap = () => {
-    if (!window.google || !window.google.maps || hospitals.length === 0) return;
-
-    // Calculate center point
-    const centerLat = hospitals.reduce((sum, h) => sum + h.lat, 0) / hospitals.length;
-    const centerLng = hospitals.reduce((sum, h) => sum + h.lng, 0) / hospitals.length;
-
-    const mapElement = document.getElementById('map');
-    if (!mapElement) return;
-    
-    const map = new window.google.maps.Map(mapElement, {
-      zoom: 11,
-      center: { lat: centerLat, lng: centerLng },
-      styles: [
-        {
-          featureType: 'poi',
-          elementType: 'labels',
-          stylers: [{ visibility: 'off' }]
-        }
-      ]
-    });
-
-    // Add markers for hospitals
-    hospitals.forEach((hospital) => {
-      const marker = new window.google.maps.Marker({
-        position: { lat: hospital.lat, lng: hospital.lng },
-        map: map,
-        title: hospital.name,
-        icon: {
-          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-            <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="16" cy="16" r="14" fill="#f44336" stroke="#fff" stroke-width="2"/>
-              <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">H</text>
-            </svg>
-          `),
-          scaledSize: new window.google.maps.Size(32, 32)
-        }
-      });
-
-      // Create info window
-      const infoWindow = new window.google.maps.InfoWindow({
-        content: `
-          <div style="padding: 8px; max-width: 200px;">
-            <h3 style="margin: 0 0 8px 0; color: #333;">${hospital.name}</h3>
-            <p style="margin: 0 0 4px 0; color: #666; font-size: 12px;">${hospital.address}</p>
-            ${hospital.phone ? `<p style="margin: 0 0 4px 0; color: #666; font-size: 12px;">📞 ${hospital.phone}</p>` : ''}
-            ${hospital.emergency ? '<p style="margin: 0; color: #f44336; font-size: 12px; font-weight: bold;">🚨 24/7 Emergency</p>' : ''}
-            <div style="margin-top: 8px;">
-              <a href="tel:${hospital.phone || ''}" style="margin-right: 8px; color: #1976d2; text-decoration: none;">Call</a>
-              <a href="https://www.google.com/maps/search/?api=1&query=${hospital.lat},${hospital.lng}" style="color: #1976d2; text-decoration: none;">Directions</a>
-            </div>
-          </div>
-        `
-      });
-
-      marker.addListener('click', () => {
-        infoWindow.open(map, marker);
-      });
-    });
-
-    // Add user location marker if available
-    if (userLocation) {
-      new window.google.maps.Marker({
-        position: { lat: userLocation.lat, lng: userLocation.lng },
-        map: map,
-        title: 'Your Location',
-        icon: {
-          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-            <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="16" cy="16" r="14" fill="#4285f4" stroke="#fff" stroke-width="2"/>
-              <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Y</text>
-            </svg>
-          `),
-          scaledSize: new window.google.maps.Size(32, 32)
-        }
-      });
-    }
-  };
 
   const loadDefaultHospitals = async () => {
     try {
@@ -268,12 +161,16 @@ const ContactPageRealtime: React.FC = () => {
   };
 
   const getDirections = (hospital: Hospital) => {
-    if (userLocation) {
-      const url = `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${hospital.lat},${hospital.lng}`;
-      window.open(url, '_blank');
-    } else {
-      const url = `https://www.google.com/maps/search/?api=1&query=${hospital.lat},${hospital.lng}`;
-      window.open(url, '_blank');
+    const destination = `${hospital.lat},${hospital.lng}`;
+    const destinationFallbackQuery = encodeURIComponent(`${hospital.name}, ${hospital.address}`);
+    const originPart = userLocation ? `&origin=${userLocation.lat},${userLocation.lng}` : '';
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}${originPart}&travelmode=driving`;
+
+    // Open precise coordinates-based destination first.
+    // If browser blocks it for any reason, query by hospital name/address.
+    const opened = window.open(url, '_blank');
+    if (!opened) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${destinationFallbackQuery}`, '_blank');
     }
   };
 
@@ -287,17 +184,7 @@ const ContactPageRealtime: React.FC = () => {
     setSelectedHospital(null);
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
-
-  const filteredHospitals = hospitals.filter(hospital => 
-    hospital.specialties?.some(specialty => 
-      specialty.toLowerCase().includes('cardiac') || 
-      specialty.toLowerCase().includes('heart') ||
-      specialty.toLowerCase().includes('cardiology')
-    )
-  );
+  const filteredHospitals = hospitals.filter(isHeartSpecialistHospital);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -396,13 +283,12 @@ const ContactPageRealtime: React.FC = () => {
           </Typography>
         </Box>
 
-        <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 4 }}>
-          <Tab label="List View" />
-          <Tab label={`Heart Specialists (${filteredHospitals.length})`} />
-          <Tab label="Map View" />
-        </Tabs>
-
-        <TabPanel value={tabValue} index={0}>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6">
+            All Hospitals
+          </Typography>
+        </Box>
+        <TabPanel value={0} index={0}>
           <Grid container spacing={4}>
             {hospitals.map((hospital) => (
               <Grid item xs={12} md={6} lg={4} key={hospital.id}>
@@ -505,7 +391,12 @@ const ContactPageRealtime: React.FC = () => {
           </Grid>
         </TabPanel>
 
-        <TabPanel value={tabValue} index={1}>
+        <Box sx={{ mt: 6, mb: 3 }}>
+          <Typography variant="h6">
+            Heart Specialists ({filteredHospitals.length})
+          </Typography>
+        </Box>
+        <TabPanel value={1} index={1}>
           <Grid container spacing={4}>
             {filteredHospitals.map((hospital) => (
               <Grid item xs={12} md={6} lg={4} key={hospital.id}>
@@ -583,25 +474,6 @@ const ContactPageRealtime: React.FC = () => {
               </Grid>
             ))}
           </Grid>
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={2}>
-          <Box sx={{ height: '600px', width: '100%', position: 'relative' }}>
-            <div id="map" style={{ height: '100%', width: '100%', borderRadius: '8px' }}></div>
-            {hospitals.length === 0 && (
-              <Box sx={{ 
-                position: 'absolute', 
-                top: '50%', 
-                left: '50%', 
-                transform: 'translate(-50%, -50%)',
-                textAlign: 'center'
-              }}>
-                <Typography variant="h6" color="text.secondary">
-                  Search for hospitals to see them on the map
-                </Typography>
-              </Box>
-            )}
-          </Box>
         </TabPanel>
 
         {/* Hospital Details Dialog */}

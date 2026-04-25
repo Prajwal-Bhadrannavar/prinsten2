@@ -8,31 +8,30 @@ const LifestyleData_1 = __importDefault(require("../models/LifestyleData"));
 const saveLifestyleData = async (req, res) => {
     try {
         const { date, steps, waterIntake, sleepHours, exerciseMinutes } = req.body;
-        const existingData = await LifestyleData_1.default.findOne({
+        if (!req.user?._id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+        const entryDate = date ? new Date(date) : new Date();
+        if (Number.isNaN(entryDate.getTime())) {
+            return res.status(400).json({ message: 'Invalid date provided' });
+        }
+        const dayStart = new Date(entryDate);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(entryDate);
+        dayEnd.setHours(23, 59, 59, 999);
+        await LifestyleData_1.default.findOneAndUpdate({
             userId: req.user._id,
-            date: {
-                $gte: new Date(date).setHours(0, 0, 0, 0),
-                $lt: new Date(date).setHours(23, 59, 59, 999)
-            },
-        });
-        if (existingData) {
-            existingData.steps = steps;
-            existingData.waterIntake = waterIntake;
-            existingData.sleepHours = sleepHours;
-            existingData.exerciseMinutes = exerciseMinutes;
-            await existingData.save();
-        }
-        else {
-            const lifestyleData = new LifestyleData_1.default({
+            date: { $gte: dayStart, $lte: dayEnd }
+        }, {
+            $set: {
                 userId: req.user._id,
-                date: new Date(date),
-                steps,
-                waterIntake,
-                sleepHours,
-                exerciseMinutes,
-            });
-            await lifestyleData.save();
-        }
+                date: dayStart,
+                steps: Number(steps) || 0,
+                waterIntake: Number(waterIntake) || 0,
+                sleepHours: Number(sleepHours) || 0,
+                exerciseMinutes: Number(exerciseMinutes) || 0
+            }
+        }, { upsert: true, new: true });
         res.json({ message: 'Lifestyle data saved successfully' });
     }
     catch (error) {
@@ -43,12 +42,20 @@ exports.saveLifestyleData = saveLifestyleData;
 const getLifestyleData = async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
+        if (!req.user?._id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
         let query = { userId: req.user._id };
         if (startDate && endDate) {
             query.date = {
                 $gte: new Date(startDate),
                 $lte: new Date(endDate),
             };
+        }
+        else {
+            const defaultStart = new Date();
+            defaultStart.setDate(defaultStart.getDate() - 30);
+            query.date = { $gte: defaultStart };
         }
         const lifestyleData = await LifestyleData_1.default.find(query)
             .sort({ date: -1 })
@@ -62,6 +69,9 @@ const getLifestyleData = async (req, res) => {
 exports.getLifestyleData = getLifestyleData;
 const getHealthInsights = async (req, res) => {
     try {
+        if (!req.user?._id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const lifestyleData = await LifestyleData_1.default.find({
@@ -70,6 +80,7 @@ const getHealthInsights = async (req, res) => {
         });
         if (lifestyleData.length === 0) {
             return res.json({
+                averages: { steps: 0, water: 0, sleep: 0, exercise: 0 },
                 message: 'No data available for the last 30 days',
                 insights: [],
             });

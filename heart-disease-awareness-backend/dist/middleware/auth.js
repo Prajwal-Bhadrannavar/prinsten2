@@ -6,13 +6,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authenticate = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const User_1 = __importDefault(require("../models/User"));
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 const authenticate = async (req, res, next) => {
     try {
         const token = req.header('Authorization')?.replace('Bearer ', '');
         if (!token) {
             return res.status(401).json({ message: 'Access denied. No token provided.' });
         }
-        const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+        const decoded = jsonwebtoken_1.default.verify(token, JWT_SECRET);
         const user = await User_1.default.findById(decoded.userId);
         if (!user) {
             return res.status(401).json({ message: 'Invalid token.' });

@@ -5,32 +5,37 @@ import LifestyleData from '../models/LifestyleData';
 export const saveLifestyleData = async (req: AuthRequest, res: Response) => {
   try {
     const { date, steps, waterIntake, sleepHours, exerciseMinutes } = req.body;
-
-    const existingData = await LifestyleData.findOne({
-      userId: req.user!._id,
-      date: {
-        $gte: new Date(date).setHours(0, 0, 0, 0),
-        $lt: new Date(date).setHours(23, 59, 59, 999)
-      },
-    });
-
-    if (existingData) {
-      existingData.steps = steps;
-      existingData.waterIntake = waterIntake;
-      existingData.sleepHours = sleepHours;
-      existingData.exerciseMinutes = exerciseMinutes;
-      await existingData.save();
-    } else {
-      const lifestyleData = new LifestyleData({
-        userId: req.user!._id,
-        date: new Date(date),
-        steps,
-        waterIntake,
-        sleepHours,
-        exerciseMinutes,
-      });
-      await lifestyleData.save();
+    if (!req.user?._id) {
+      return res.status(401).json({ message: 'User not authenticated' });
     }
+
+    const entryDate = date ? new Date(date) : new Date();
+    if (Number.isNaN(entryDate.getTime())) {
+      return res.status(400).json({ message: 'Invalid date provided' });
+    }
+
+    const dayStart = new Date(entryDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(entryDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    await LifestyleData.findOneAndUpdate(
+      {
+        userId: req.user._id,
+        date: { $gte: dayStart, $lte: dayEnd }
+      },
+      {
+        $set: {
+          userId: req.user._id,
+          date: dayStart,
+          steps: Number(steps) || 0,
+          waterIntake: Number(waterIntake) || 0,
+          sleepHours: Number(sleepHours) || 0,
+          exerciseMinutes: Number(exerciseMinutes) || 0
+        }
+      },
+      { upsert: true, new: true }
+    );
 
     res.json({ message: 'Lifestyle data saved successfully' });
   } catch (error) {
@@ -41,6 +46,9 @@ export const saveLifestyleData = async (req: AuthRequest, res: Response) => {
 export const getLifestyleData = async (req: AuthRequest, res: Response) => {
   try {
     const { startDate, endDate } = req.query;
+    if (!req.user?._id) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
     
     let query: any = { userId: req.user!._id };
     
@@ -49,6 +57,10 @@ export const getLifestyleData = async (req: AuthRequest, res: Response) => {
         $gte: new Date(startDate as string),
         $lte: new Date(endDate as string),
       };
+    } else {
+      const defaultStart = new Date();
+      defaultStart.setDate(defaultStart.getDate() - 30);
+      query.date = { $gte: defaultStart };
     }
 
     const lifestyleData = await LifestyleData.find(query)
@@ -63,6 +75,9 @@ export const getLifestyleData = async (req: AuthRequest, res: Response) => {
 
 export const getHealthInsights = async (req: AuthRequest, res: Response) => {
   try {
+    if (!req.user?._id) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -73,6 +88,7 @@ export const getHealthInsights = async (req: AuthRequest, res: Response) => {
 
     if (lifestyleData.length === 0) {
       return res.json({
+        averages: { steps: 0, water: 0, sleep: 0, exercise: 0 },
         message: 'No data available for the last 30 days',
         insights: [],
       });

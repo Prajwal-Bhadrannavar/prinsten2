@@ -21,6 +21,61 @@ export interface SearchResult {
   city: string;
 }
 
+const HEART_KEYWORDS = [
+  'cardio',
+  'cardiac',
+  'heart',
+  'cardiothoracic',
+  'electrophysiology',
+  'interventional cardiology'
+];
+
+const isValidCoordinate = (lat: number, lng: number): boolean => {
+  return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+};
+
+const textHasHeartKeyword = (text: string): boolean => {
+  const normalized = text.toLowerCase();
+  return HEART_KEYWORDS.some((keyword) => normalized.includes(keyword));
+};
+
+const deriveSpecialties = (tags: Record<string, any>, hospitalName: string): string[] => {
+  const collected = new Set<string>();
+
+  const rawSpecialtyFields = [
+    tags['healthcare:speciality'],
+    tags['healthcare:specialty'],
+    tags.speciality,
+    tags.specialty,
+    tags.department
+  ]
+    .filter(Boolean)
+    .join(';');
+
+  if (rawSpecialtyFields) {
+    rawSpecialtyFields
+      .split(/[;,|]/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .forEach((item) => collected.add(item));
+  }
+
+  if (collected.size === 0 && textHasHeartKeyword(hospitalName)) {
+    collected.add('Cardiology');
+  }
+
+  if (collected.size === 0) {
+    collected.add('General');
+  }
+
+  return Array.from(collected);
+};
+
+export const isHeartSpecialistHospital = (hospital: Hospital): boolean => {
+  const fullText = `${hospital.name} ${hospital.address} ${(hospital.specialties || []).join(' ')}`;
+  return textHasHeartKeyword(fullText);
+};
+
 // Using Overpass API for real-time hospital data
 const OVERPASS_API = 'https://overpass-api.de/api/interpreter';
 
@@ -101,8 +156,8 @@ const getFallbackHospitals = (city: string): Hospital[] => {
         id: 'bangalore-2',
         name: 'Fortis Hospital',
         address: 'Cunningham Road, Bengaluru, Karnataka 560103',
-        lat: 12.9666,
-        lng: 77.5983,
+        lat: 12.9867,
+        lng: 77.5966,
         phone: '+91-80-2241-0000',
         website: 'https://www.fortis.com',
         rating: 4.6,
@@ -226,13 +281,16 @@ export const searchHospitalsByCity = async (city: string): Promise<SearchResult>
       };
     }
 
-    // Query Overpass API for hospitals near the city
+    // Query Overpass API for hospitals and cardiology-focused clinics near the city.
     const query = `
       [out:json][timeout:25];
       (
-        node["amenity"="hospital"]["healthcare"="hospital"](${cityCoords.lat - 0.2},${cityCoords.lng - 0.2},${cityCoords.lat + 0.2},${cityCoords.lng + 0.2});
-        way["amenity"="hospital"]["healthcare"="hospital"](${cityCoords.lat - 0.2},${cityCoords.lng - 0.2},${cityCoords.lat + 0.2},${cityCoords.lng + 0.2});
-        relation["amenity"="hospital"]["healthcare"="hospital"](${cityCoords.lat - 0.2},${cityCoords.lng - 0.2},${cityCoords.lat + 0.2},${cityCoords.lng + 0.2});
+        node["amenity"="hospital"](${cityCoords.lat - 0.2},${cityCoords.lng - 0.2},${cityCoords.lat + 0.2},${cityCoords.lng + 0.2});
+        way["amenity"="hospital"](${cityCoords.lat - 0.2},${cityCoords.lng - 0.2},${cityCoords.lat + 0.2},${cityCoords.lng + 0.2});
+        relation["amenity"="hospital"](${cityCoords.lat - 0.2},${cityCoords.lng - 0.2},${cityCoords.lat + 0.2},${cityCoords.lng + 0.2});
+        node["amenity"="clinic"]["healthcare:speciality"~"cardio|heart",i](${cityCoords.lat - 0.2},${cityCoords.lng - 0.2},${cityCoords.lat + 0.2},${cityCoords.lng + 0.2});
+        way["amenity"="clinic"]["healthcare:speciality"~"cardio|heart",i](${cityCoords.lat - 0.2},${cityCoords.lng - 0.2},${cityCoords.lat + 0.2},${cityCoords.lng + 0.2});
+        relation["amenity"="clinic"]["healthcare:speciality"~"cardio|heart",i](${cityCoords.lat - 0.2},${cityCoords.lng - 0.2},${cityCoords.lat + 0.2},${cityCoords.lng + 0.2});
       );
       out geom;
     `;
@@ -250,16 +308,23 @@ export const searchHospitalsByCity = async (city: string): Promise<SearchResult>
     if (data.elements) {
       data.elements.forEach((element: any) => {
         if (element.tags && element.tags.name) {
+          const parsedLat = typeof element.lat === 'number' ? element.lat : element.center?.lat;
+          const parsedLng = typeof element.lon === 'number' ? element.lon : element.center?.lon;
+
+          if (!isValidCoordinate(parsedLat, parsedLng)) {
+            return;
+          }
+
           const hospital: Hospital = {
             id: `osm-${element.id}`,
             name: element.tags.name || 'Unknown Hospital',
             address: element.tags['addr:street'] || element.tags['addr:full'] || 'Address not available',
-            lat: element.lat || element.center?.lat || cityCoords.lat,
-            lng: element.lon || element.center?.lon || cityCoords.lng,
+            lat: parsedLat,
+            lng: parsedLng,
             phone: element.tags.phone || element.tags['contact:phone'],
             website: element.tags.website || element.tags['contact:website'],
             rating: parseFloat(element.tags.rating) || undefined,
-            specialties: element.tags['healthcare:speciality'] ? [element.tags['healthcare:speciality']] : ['General'],
+            specialties: deriveSpecialties(element.tags, element.tags.name || 'Unknown Hospital'),
             emergency: element.tags.emergency === 'yes' || element.tags['emergency'] === 'yes',
             hours: element.tags.opening_hours || 'Not specified'
           };
@@ -311,9 +376,12 @@ export const searchHospitalsByCoords = async (lat: number, lng: number, radius: 
     const query = `
       [out:json][timeout:25];
       (
-        node["amenity"="hospital"]["healthcare"="hospital"](${lat - 0.1},${lng - 0.1},${lat + 0.1},${lng + 0.1});
-        way["amenity"="hospital"]["healthcare"="hospital"](${lat - 0.1},${lng - 0.1},${lat + 0.1},${lng + 0.1});
-        relation["amenity"="hospital"]["healthcare"="hospital"](${lat - 0.1},${lng - 0.1},${lat + 0.1},${lng + 0.1});
+        node["amenity"="hospital"](${lat - 0.1},${lng - 0.1},${lat + 0.1},${lng + 0.1});
+        way["amenity"="hospital"](${lat - 0.1},${lng - 0.1},${lat + 0.1},${lng + 0.1});
+        relation["amenity"="hospital"](${lat - 0.1},${lng - 0.1},${lat + 0.1},${lng + 0.1});
+        node["amenity"="clinic"]["healthcare:speciality"~"cardio|heart",i](${lat - 0.1},${lng - 0.1},${lat + 0.1},${lng + 0.1});
+        way["amenity"="clinic"]["healthcare:speciality"~"cardio|heart",i](${lat - 0.1},${lng - 0.1},${lat + 0.1},${lng + 0.1});
+        relation["amenity"="clinic"]["healthcare:speciality"~"cardio|heart",i](${lat - 0.1},${lng - 0.1},${lat + 0.1},${lng + 0.1});
       );
       out geom;
     `;
@@ -331,16 +399,23 @@ export const searchHospitalsByCoords = async (lat: number, lng: number, radius: 
     if (data.elements) {
       data.elements.forEach((element: any) => {
         if (element.tags && element.tags.name) {
+          const parsedLat = typeof element.lat === 'number' ? element.lat : element.center?.lat;
+          const parsedLng = typeof element.lon === 'number' ? element.lon : element.center?.lon;
+
+          if (!isValidCoordinate(parsedLat, parsedLng)) {
+            return;
+          }
+
           const hospital: Hospital = {
             id: `osm-${element.id}`,
             name: element.tags.name || 'Unknown Hospital',
             address: element.tags['addr:street'] || element.tags['addr:full'] || 'Address not available',
-            lat: element.lat || element.center?.lat || lat,
-            lng: element.lon || element.center?.lon || lng,
+            lat: parsedLat,
+            lng: parsedLng,
             phone: element.tags.phone || element.tags['contact:phone'],
             website: element.tags.website || element.tags['contact:website'],
             rating: parseFloat(element.tags.rating) || undefined,
-            specialties: element.tags['healthcare:speciality'] ? [element.tags['healthcare:speciality']] : ['General'],
+            specialties: deriveSpecialties(element.tags, element.tags.name || 'Unknown Hospital'),
             emergency: element.tags.emergency === 'yes' || element.tags['emergency'] === 'yes',
             hours: element.tags.opening_hours || 'Not specified'
           };
