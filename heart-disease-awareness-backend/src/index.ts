@@ -14,7 +14,10 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors({
-  origin: ['http://localhost:3000'],
+  origin: [
+    "http://localhost:3000",
+    "https://prinsten2-git-main-prajwal-bhadrannavars-projects.vercel.app"
+  ],
   credentials: true
 }));
 app.use(express.json());
