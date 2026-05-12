@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ArrowLeft, CheckCircle, XCircle, Eye, Clock, User, Mail, Phone, MapPin, Award, FileText, Trash } from 'lucide-react';
 import { adminAPI } from '../services/api';
@@ -33,11 +33,7 @@ const AdminPage: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  useEffect(() => {
-    fetchDoctors();
-  }, [activeTab]);
-
-  const fetchDoctors = async () => {
+  const fetchDoctors = useCallback(async () => {
     try {
       if (activeTab === 'pending') {
         const pending = await adminAPI.getPendingVerifications();
@@ -51,7 +47,11 @@ const AdminPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    fetchDoctors();
+  }, [fetchDoctors]);
 
   const handleApprove = async (doctorId: string) => {
     try {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Heart, ArrowLeft, Save, Eye } from 'lucide-react';
+import { Heart, ArrowLeft, Save } from 'lucide-react';
 import { doctorAPI } from '../services/api';
 
 interface Article {
@@ -33,24 +33,24 @@ const DoctorArticleEditorPage: React.FC = () => {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    if (isEditing) {
-      fetchArticle();
-    }
-  }, [id]);
+    if (!isEditing) return;
 
-  const fetchArticle = async () => {
-    try {
-      const articles = await doctorAPI.getArticles();
-      const foundArticle = articles.find((a: any) => a._id === id);
-      if (foundArticle) {
-        setArticle(foundArticle);
-      } else {
-        setError('Article not found');
+    const fetchArticle = async () => {
+      try {
+        const articles = await doctorAPI.getArticles();
+        const foundArticle = articles.find((a: any) => a._id === id);
+        if (foundArticle) {
+          setArticle(foundArticle);
+        } else {
+          setError('Article not found');
+        }
+      } catch (err: any) {
+        setError('Failed to load article');
       }
-    } catch (err: any) {
-      setError('Failed to load article');
-    }
-  };
+    };
+
+    fetchArticle();
+  }, [id, isEditing]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -92,11 +92,6 @@ const DoctorArticleEditorPage: React.FC = () => {
       const newTags = article.tags.filter((_, i) => i !== index);
       setArticle(prev => ({ ...prev, tags: newTags }));
     }
-  };
-
-    const totalWords = article.content.join(' ').split(' ').length;
-    const minutes = Math.ceil(totalWords / 200); // Average reading speed
-    setArticle(prev => ({ ...prev, readTime: `${minutes} min read` }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
