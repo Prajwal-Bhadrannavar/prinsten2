@@ -7,10 +7,10 @@
     }
   ],
   "outputDirectory": "heart-disease-awareness/build",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "heart-disease-awareness/build/$1"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
