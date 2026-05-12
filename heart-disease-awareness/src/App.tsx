@@ -14,7 +14,6 @@ import LifestylePage from './pages/LifestylePage';
 import DoctorsPage from './pages/DoctorsPage';
 import DoctorVerificationPage from './pages/DoctorVerificationPage';
 import DoctorDashboardPage from './pages/DoctorDashboardPage';
-import DoctorArticleEditorPage from './pages/DoctorArticleEditorPage';
 import AdminPage from './pages/AdminPage';
 import AdminRoute from './components/AdminRoute';
 import ContactPage from './pages/ContactPageRealtime';
@@ -88,7 +87,6 @@ function App() {
               path="/doctor/create-article" 
               element={
                 <ProtectedRoute>
-                  <DoctorArticleEditorPage />
                 </ProtectedRoute>
               } 
             />
@@ -96,7 +94,6 @@ function App() {
               path="/doctor/edit-article/:id" 
               element={
                 <ProtectedRoute>
-                  <DoctorArticleEditorPage />
                 </ProtectedRoute>
               } 
             />
