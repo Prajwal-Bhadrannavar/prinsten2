@@ -94,7 +94,6 @@ const DoctorArticleEditorPage: React.FC = () => {
     }
   };
 
-  const calculateReadTime = () => {
     const totalWords = article.content.join(' ').split(' ').length;
     const minutes = Math.ceil(totalWords / 200); // Average reading speed
     setArticle(prev => ({ ...prev, readTime: `${minutes} min read` }));

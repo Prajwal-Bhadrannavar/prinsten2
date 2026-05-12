@@ -30,7 +30,6 @@ const DoctorDashboardPage: React.FC = () => {
   const [profile, setProfile] = useState<DoctorProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchDoctorData();

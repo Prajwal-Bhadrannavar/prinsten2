@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, ArrowLeft, Upload, CheckCircle } from 'lucide-react';
+import { Heart, ArrowLeft,  CheckCircle } from 'lucide-react';
 import { doctorAPI } from '../services/api';
 
 const DoctorVerificationPage: React.FC = () => {
