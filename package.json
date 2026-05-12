@@ -1,4 +1,13 @@
 {
+  "private": true,
+  "engines": {
+    "node": ">=18 <=20"
+  },
+  "scripts": {
+    "build": "cd heart-disease-awareness && npm install && npm run build",
+    "start": "cd heart-disease-awareness && npm start",
+    "dev": "cd heart-disease-awareness && npm start"
+  },
   "dependencies": {
     "@react-google-maps/api": "^2.20.8"
   }

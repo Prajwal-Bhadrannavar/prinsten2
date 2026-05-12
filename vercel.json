@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "builds": [
+    {
+      "src": "heart-disease-awareness/package.json",
+      "use": "@vercel/static-build"
+    }
+  ],
+  "outputDirectory": "heart-disease-awareness/build",
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "heart-disease-awareness/build/$1"
+    }
+  ]
+}
